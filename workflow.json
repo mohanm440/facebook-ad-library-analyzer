@@ -1,0 +1,268 @@
+{
+  "name": "Meta AD Library Analyzer - Demo",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "76278a2c-8abb-493a-be45-686d1fec5484",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"hook\": \"Fluent English bolne ka sirf ek raasta\",\n  \"body\": \"Daily practice using the Speakeasy app to improve English fluency.\",\n  \"cta\": \"Download the Speakeasy app now\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        352
+      ],
+      "id": "434fde4c-e98d-4c58-88eb-f99c44014293",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/pro100chok~meta-ads-library-scraper/run-sync-get-dataset-items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": YOUR_API_KEY_HERE
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"scrapeType\": \"search\",\n  \"items\": [\"English learning\"],\n  \"country\": \"IN\",\n  \"activeStatus\": \"active\",\n  \"maxAds\": 3,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true,\n    \"apifyProxyGroups\": [\"RESIDENTIAL\"],\n    \"apifyProxyCountry\": \"IN\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2070726b-4bc2-44b7-8b3e-94085a59409e",
+      "name": "Scrape Facebook Ads"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a growth marketing analyst.\n\nAnalyze the following Facebook advertisement.\n\nExtract ONLY these three elements:\n\n1. HOOK:\nThe opening attention-grabbing message or main idea.\n\n2. BODY:\nThe main advertising message, value proposition, benefit, or offer.\nKeep this concise. Do not include creative analysis or scoring.\n\n3. CTA:\nThe action the advertiser asks the user to take.\nIf there is no clear CTA, return \"No explicit CTA\".\n\nAd Content:\n{{ $json.adContent }}\n\nAd Title:\n{{ $json.adTitle }}\n\nAd Link Caption:\n{{ $json.adLinkCaption }}",
+        "hasOutputParser": true,
+        "batching": {
+          "batchSize": 1,
+          "delayBetweenBatches": 15000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4596a6ca-a7aa-4c64-b5e2-d93f01d8e2ed",
+      "name": "Extract Hook Body CTA",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const llmItems = $input.all();\nconst originalAds = $(\"Scrape Facebook Ads\").all();\n\nconst ads = llmItems.map((item, index) => {\n  const ad = item.json.output;\n  const original = originalAds[index].json;\n\n  return {\n    adNumber: index + 1,\n    hook: ad.hook,\n    body: ad.body,\n    cta: ad.cta,\n    adLibraryUrl: original.adLibraryUrl\n  };\n});\n\nreturn [\n  {\n    json: {\n      adsForComparison: ads\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "885fbab6-600a-4f13-b920-1d0e59e026f3",
+      "name": "Prepare Ads for Comparison"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a growth marketing analyst.\n\nBelow is a list of Facebook ads with their extracted Hook, Body, CTA, and Ad Library Link.\n\n{{ JSON.stringify($json.adsForComparison) }}\n\nAnalyze each ad based ONLY on its creative content.\n\nFor every ad, extract:\n1. Hook\n2. Body\n3. CTA\n4. Ad Library Link\n\nThen score each ad on these weighted criteria (total 100 points):\n- Hook strength (30 pts): does it stop the scroll and create curiosity or urgency in the first line?\n- CTA clarity (20 pts): is the next action obvious and low-friction?\n- Value proposition (20 pts): is the core offer/benefit clear and compelling?\n- Message clarity (15 pts): can you tell what's being sold and why it matters in one read?\n- Audience relevance (15 pts): does the messaging target a specific, identifiable audience?\n\nFor each ad, output:\n{\n  \"ad_number\": ...,\n  \"hook_score\": ...,\n  \"cta_score\": ...,\n  \"value_prop_score\": ...,\n  \"message_clarity_score\": ...,\n  \"audience_relevance_score\": ...,\n  \"total_score\": ...,\n  \"ad_library_link\": \"...\"\n}\n\nThen provide:\n\nBEST AD:\nAd number: [the ad with the highest total_score]\n\nWHY:\nExplain why this ad scored highest, referencing its specific criterion scores.\n\nKEY INSIGHT:\nGive one useful marketing insight from comparing these ads.\n\nCAVEAT:\nThis is a creative-content assessment, not an actual performance ranking. Performance data such as CTR, ROAS, conversions, and revenue is not available.\n\nDo not invent performance data.\nDo not modify or invent Ad Library Links.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "ce8f8439-31de-47b4-9ffb-d46236133d63",
+      "name": "Compare & Find Best Ad",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        320
+      ],
+      "id": "5ab58ed1-3405-41a0-a3af-41bf6872a029",
+      "name": "Gemini - Ad Extraction",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NokYUDlUky7VeDb9",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        192
+      ],
+      "id": "9c48f803-22d8-4322-992e-0648ea0306f6",
+      "name": "Gemini - Ad Comparison",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NokYUDlUky7VeDb9",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"bestAd\": 1,\n  \"bestAdLibraryLink\": \"https://www.facebook.com/ads/library/...\",\n  \"reason\": \"Strong hook, clear value proposition, relevant messaging, and direct CTA.\",\n  \"keyInsight\": \"A clear problem-solution message combined with a direct CTA can make an ad easier to understand.\",\n  \"caveat\": \"This is a creative assessment, not a performance ranking because CTR, ROAS, conversions, and revenue data are unavailable.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        336
+      ],
+      "id": "6a3ddc33-2a1e-49c1-a438-41eed6c91738",
+      "name": "Structured Output Parser1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Scrape Facebook Ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Extract Hook Body CTA",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Facebook Ads": {
+      "main": [
+        [
+          {
+            "node": "Extract Hook Body CTA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Hook Body CTA": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ads for Comparison",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ads for Comparison": {
+      "main": [
+        [
+          {
+            "node": "Compare & Find Best Ad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Ad Extraction": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Hook Body CTA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Ad Comparison": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Compare & Find Best Ad",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Compare & Find Best Ad",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "16b2959e-f62a-4714-8a75-2cbb22628158",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e47cda8fe9d7842a41f7970b02ef67e81539bffce4c7a079029d88a92e6c17d1"
+  },
+  "nodeGroups": [],
+  "id": "CWFk8fhCm8GJ5wor",
+  "tags": []
+}
