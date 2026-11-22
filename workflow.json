@@ -34,7 +34,7 @@
           "parameters": [
             {
               "name": "token",
-              "value": YOUR_API_KEY_HERE
+              "value": "YOUR_API_KEY_HERE"
             }
           ]
         },
@@ -44,7 +44,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"scrapeType\": \"search\",\n  \"items\": [\"English learning\"],\n  \"country\": \"IN\",\n  \"activeStatus\": \"active\",\n  \"maxAds\": 3,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true,\n    \"apifyProxyGroups\": [\"RESIDENTIAL\"],\n    \"apifyProxyCountry\": \"IN\"\n  }\n}",
+        "jsonBody": "{\n  \"scrapeType\": \"search\",\n  \"items\": [\"MySivi\"],\n  \"country\": \"IN\",\n  \"activeStatus\": \"active\",\n  \"maxAds\": 10,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true,\n    \"apifyProxyGroups\": [\"RESIDENTIAL\"],\n    \"apifyProxyCountry\": \"IN\"\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -63,7 +63,7 @@
         "hasOutputParser": true,
         "batching": {
           "batchSize": 1,
-          "delayBetweenBatches": 15000
+          "delayBetweenBatches": 20000
         }
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
@@ -110,6 +110,7 @@
     },
     {
       "parameters": {
+        "modelName": "models/gemini-3.6-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
@@ -122,13 +123,14 @@
       "name": "Gemini - Ad Extraction",
       "credentials": {
         "googlePalmApi": {
-          "id": "NokYUDlUky7VeDb9",
-          "name": "Google Gemini(PaLM) Api account 4"
+          "id": "DHW9rnZGr1ErmznC",
+          "name": "Google Gemini(PaLM) Api account 5"
         }
       }
     },
     {
       "parameters": {
+        "modelName": "models/gemini-3.6-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
@@ -141,8 +143,8 @@
       "name": "Gemini - Ad Comparison",
       "credentials": {
         "googlePalmApi": {
-          "id": "NokYUDlUky7VeDb9",
-          "name": "Google Gemini(PaLM) Api account 4"
+          "id": "VajgY9EiPz1UQdHs",
+          "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
@@ -257,7 +259,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "16b2959e-f62a-4714-8a75-2cbb22628158",
+  "versionId": "e4886349-0538-40a2-b6e5-d3281c9bb412",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e47cda8fe9d7842a41f7970b02ef67e81539bffce4c7a079029d88a92e6c17d1"
